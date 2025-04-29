@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
@@ -66,6 +66,23 @@ export function TransactionForm() {
     },
   })
 
+  // Watch the 'type' field to determine if category should be fixed
+  const transactionType = form.watch("type")
+
+  // Effect to set category to "Income" when type is "income"
+  useEffect(() => {
+    if (transactionType === "income") {
+      form.setValue("category", "Income")
+    }
+  }, [transactionType, form])
+
+  // State to handle date button text hydration
+  const [isMounted, setIsMounted] = useState(false)
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     const response = await fetch('/api/transactions', {
       method: 'POST',
@@ -77,17 +94,17 @@ export function TransactionForm() {
         category: values.category,
         type: values.type,
       }),
-    });
+    })
 
-    const result = await response.json();
+    const result = await response.json()
 
     if (response.ok) {
       toast.success("Transaction added", {
         description: `Added ${values.description} for $${Math.abs(Number(values.amount))}`,
-      });
-      router.push("/transactions");
+      })
+      router.push("/transactions")
     } else {
-      toast.error(result.error || "Failed to add transaction");
+      toast.error(result.error || "Failed to add transaction")
     }
   }
 
@@ -166,7 +183,7 @@ export function TransactionForm() {
                         !field.value && "text-muted-foreground"
                       )}
                     >
-                      {field.value ? (
+                      {isMounted && field.value ? (
                         format(field.value, "PPP")
                       ) : (
                         <span>Pick a date</span>
@@ -195,7 +212,11 @@ export function TransactionForm() {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Category</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select 
+                onValueChange={field.onChange} 
+                defaultValue={field.value}
+                disabled={transactionType === "income"}
+              >
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a category" />
